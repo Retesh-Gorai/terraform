@@ -1,0 +1,1 @@
+{"Modules":[{"Key":"","Source":"","Dir":"."},{"Key":"cloud_sql_instance","Source":"registry.terraform.io/GoogleCloudPlatform/sql-db/google//modules/postgresql","Version":"20.0.0","Dir":".terraform/modules/cloud_sql_instance/modules/postgresql"}]}
