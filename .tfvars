@@ -1,7 +1,10 @@
+pg_instance_name = ""
 project_id  = "your-project-id"
 instance_id = "your-instance-name"
 region      = "europe-west1"
 database    = "postgres"
+database_version = ""
+tier = "db-custom-1-3840"
 db_user     = "your-db-user"
 db_password = "your-db-password"
 
