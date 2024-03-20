@@ -1,3 +1,15 @@
+locals {
+  read_replica_ip_configuration = {
+    ipv4_enabled       = true
+    require_ssl        = true
+    private_network    = null
+    allocated_ip_range = null
+    authorized_networks = [
+    
+    ]
+  }
+}
+
 module "cloud_sql_instance" {
   source  = "GoogleCloudPlatform/sql-db/google//modules/postgresql"
   version = "~> 20.0"
@@ -41,6 +53,7 @@ module "cloud_sql_instance" {
 
   # # Other settings
   # deletion_protection = var.deletion_protection
+
   name                 = var.pg_instance_name
   random_instance_name = true
   project_id           = var.project_id
@@ -49,7 +62,7 @@ module "cloud_sql_instance" {
 
   // Master configurations
   tier                            = var.tier
-  zone                            = "us-central1-c"
+  zone                            = "europe-west1-b"
   availability_type               = "REGIONAL"
   maintenance_window_day          = 7
   maintenance_window_hour         = 12
@@ -66,24 +79,24 @@ module "cloud_sql_instance" {
   ip_configuration = {
     ipv4_enabled       = true
     require_ssl        = true
-    private_network    = "Groupnet"
+    private_network    = null
     allocated_ip_range = null
-    # authorized_networks = [
-    #   {
-    #     name  = "${var.project_id}-cidr"
-    #     value = var.pg_ha_external_ip_range
-    #   },
-    # ]
+    authorized_networks = [
+      # {
+      #   name  = "${var.project_id}-cidr"
+      #   value = var.pg_ha_external_ip_range
+      # },
+    ]
   }
 
   backup_configuration = {
     enabled                        = true
-    start_time                     = "20:55"
-    location                       = null
-    point_in_time_recovery_enabled = false
-    transaction_log_retention_days = null
-    retained_backups               = 365
-    retention_unit                 = "COUNT"
+    start_time                     = "18:30"
+    # location                       = null
+    point_in_time_recovery_enabled = true
+    # transaction_log_retention_days = null
+    retained_backups               = 15
+    # retention_unit                 = "COUNT"
   }
 
   // Read replica configurations
@@ -91,27 +104,27 @@ module "cloud_sql_instance" {
   read_replicas = [
     {
       name                  = "0"
-      zone                  = "us-central1-a"
+      zone                  = "europe-west1-a"
       availability_type     = "REGIONAL"
-      tier                  = "db-custom-1-3840"
+      tier                  = var.tier
       ip_configuration      = local.read_replica_ip_configuration
       database_flags        = [{ name = "autovacuum", value = "off" }]
       disk_autoresize       = null
       disk_autoresize_limit = null
       disk_size             = null
-      disk_type             = "PD_HDD"
+      disk_type             = "PD_SSD"
       user_labels           = { bar = "baz" }
-      encryption_key_name   = null
+      encryption_key_name   = "test-encryp-key"
     },
   ]
 
-  db_name      = var.pg_ha_name
+  db_name      = var.pg_db_name
   db_charset   = "UTF8"
   db_collation = "en_US.UTF8"
 
   additional_databases = [
     {
-      name      = "${var.pg_ha_name}-additional"
+      name      = "${var.pg_db_name}-additional"
       charset   = "UTF8"
       collation = "en_US.UTF8"
     },
@@ -124,15 +137,26 @@ module "cloud_sql_instance" {
     {
       name            = "tftest2"
       password        = "abcdefg"
-      host            = "localhost"
+      host            = "%"
       random_password = false
     },
     {
       name            = "tftest3"
       password        = "abcdefg"
-      host            = "localhost"
+      host            = "%"
       random_password = false
     },
   ]
+
+  # location_preference {
+  #   zone = "us-central1-c"
+  #   follow_gae_application = true
+  # }
+  
+  # location_preference {
+  #   zone = "us-central1-d"
+  #   follow_gae_application = true
+  # }
+
 }
 

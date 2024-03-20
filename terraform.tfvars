@@ -1,10 +1,12 @@
-pg_instance_name = ""
-project_id  = "your-project-id"
-instance_id = "your-instance-name"
+pg_instance_name = "postgresql-instance"
+project_id  = "august-storm-417111"
+# instance_id = "your-instance-name"
 region      = "europe-west1"
 database    = "postgres"
-database_version = ""
+database_version = "POSTGRES_14"
 tier = "db-custom-1-3840"
+pg_db_name = "master-db"
+
 db_user     = "your-db-user"
 db_password = "your-db-password"
 
@@ -14,7 +16,7 @@ database_flags = {
 }
 
 machine_type = "db-custom-8-32768"
-storage_size_gb = 100
+storage_size_gb = 10
 network      = "default"
 subnetwork    = "default"
 authorized_networks = ["10.0.0.0/24"]
