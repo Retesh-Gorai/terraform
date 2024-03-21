@@ -1,16 +1,40 @@
-locals {
-  read_replica_ip_configuration = {
-    ipv4_enabled       = true
-    require_ssl        = true
-    private_network    = null
-    allocated_ip_range = null
-    authorized_networks = [
+# locals {
+#   read_replica_ip_configuration = {
+#     ipv4_enabled       = false
+#     require_ssl        = true
+#     private_network    = null
+#     allocated_ip_range = null
+#     authorized_networks = [
     
-    ]
-  }
+#     ]
+#   }
+# }
+
+data "google_secret_manager_secret_version" "ssl_cert" {
+  provider = google-beta
+  project  = var.project_id
+  secret   = "my-ssl-cert"  # Specify the name of the secret containing SSL certificates
+  version  = "latest"       # You may specify a specific version if needed
 }
 
+resource "google_service_networking_connection" "default" {
+  network                 = "projects/PROJECT_ID/global/networks/Groupnet"
+  service                 = "servicenetworking.googleapis.com"
+  reserved_peering_ranges = ["10.0.0.0/28"]
+}
+
+
+resource "google_compute_network_peering_routes_config" "peering_routes" {
+  project              = var.project_id
+  peering              = google_service_networking_connection.default.peering
+  network              = "projects/PROJECT_ID/global/networks/Groupnet"
+  import_custom_routes = true
+  export_custom_routes = true
+}
+
+
 module "cloud_sql_instance" {
+  module_depends_on = [google_service_networking_connection.default]
   source  = "GoogleCloudPlatform/sql-db/google//modules/postgresql"
   version = "~> 20.0"
 
@@ -77,9 +101,9 @@ module "cloud_sql_instance" {
   }
 
   ip_configuration = {
-    ipv4_enabled       = true
+    ipv4_enabled       = false
     require_ssl        = true
-    private_network    = null
+    private_network    = "projects/PROJECT_ID/global/networks/Groupnet"
     allocated_ip_range = null
     authorized_networks = [
       # {
@@ -87,6 +111,8 @@ module "cloud_sql_instance" {
       #   value = var.pg_ha_external_ip_range
       # },
     ]
+     # Use the retrieved SSL certificates
+    ssl_certificates = [data.google_secret_manager_secret_version.ssl_cert.secret_data]
   }
 
   backup_configuration = {
@@ -95,28 +121,28 @@ module "cloud_sql_instance" {
     # location                       = null
     point_in_time_recovery_enabled = true
     # transaction_log_retention_days = null
-    retained_backups               = 15
+    retained_backups               = 7
     # retention_unit                 = "COUNT"
   }
 
-  // Read replica configurations
-  read_replica_name_suffix = "-test-ha"
-  read_replicas = [
-    {
-      name                  = "0"
-      zone                  = "europe-west1-a"
-      availability_type     = "REGIONAL"
-      tier                  = var.tier
-      ip_configuration      = local.read_replica_ip_configuration
-      database_flags        = [{ name = "autovacuum", value = "off" }]
-      disk_autoresize       = null
-      disk_autoresize_limit = null
-      disk_size             = null
-      disk_type             = "PD_SSD"
-      user_labels           = { bar = "baz" }
-      encryption_key_name   = "test-encryp-key"
-    },
-  ]
+  # // Read replica configurations
+  # read_replica_name_suffix = "-test-ha"
+  # read_replicas = [
+  #   {
+  #     name                  = "0"
+  #     zone                  = "europe-west1-a"
+  #     availability_type     = "REGIONAL"
+  #     tier                  = var.tier
+  #     ip_configuration      = local.read_replica_ip_configuration
+  #     database_flags        = [{ name = "autovacuum", value = "off" }]
+  #     disk_autoresize       = null
+  #     disk_autoresize_limit = null
+  #     disk_size             = null
+  #     disk_type             = "PD_SSD"
+  #     user_labels           = { bar = "baz" }
+  #     encryption_key_name   = "test-encryp-key"
+  #   },
+  # ]
 
   db_name      = var.pg_db_name
   db_charset   = "UTF8"
@@ -159,4 +185,3 @@ module "cloud_sql_instance" {
   # }
 
 }
-

@@ -1,0 +1,92 @@
+resource "google_service_networking_connection" "default" {
+  network                 = "projects/PROJECT_ID/global/networks/Groupnet"
+  service                 = "servicenetworking.googleapis.com"
+  reserved_peering_ranges = ["10.0.0.0/28"]
+}
+
+
+resource "google_compute_network_peering_routes_config" "peering_routes" {
+  peering              = google_service_networking_connection.default.peering
+  network              = "projects/PROJECT_ID/global/networks/Groupnet"
+  import_custom_routes = true
+  export_custom_routes = true
+}
+
+
+module "cloud_sql_instance" {
+  module_depends_on = [google_service_networking_connection.default]
+  source  = "GoogleCloudPlatform/sql-db/google//modules/postgresql"
+  version = "~> 20.0"
+
+  name                 = var.pg_instance_name
+  random_instance_name = true
+  project_id           = var.project_id
+  database_version     = var.database_version
+  region               = var.region
+
+  // Master configurations
+  tier                            = var.tier
+  zone                            = "europe-west1-b"
+  availability_type               = "REGIONAL"
+  maintenance_window_day          = 7
+  maintenance_window_hour         = 12
+  maintenance_window_update_track = "stable"
+
+  deletion_protection = true
+
+  # database_flags = [{ name = "autovacuum", value = "off" }]
+
+  user_labels = {
+    creation_type = "automated"
+  }
+
+  ip_configuration = {
+    ipv4_enabled       = false
+    require_ssl        = true
+    private_network    = "projects/PROJECT_ID/global/networks/Groupnet"
+    allocated_ip_range = null
+    authorized_networks = [
+     
+    ]
+  }
+
+  backup_configuration = {
+    enabled                        = true
+    start_time                     = "18:30"
+    # location                       = null
+    point_in_time_recovery_enabled = true
+    # transaction_log_retention_days = null
+    retained_backups               = 7
+    # retention_unit                 = "COUNT"
+  }
+
+  db_name      = var.pg_db_name
+  db_charset   = "UTF8"
+  db_collation = "en_US.UTF8"
+
+  additional_databases = [
+    {
+      name      = "${var.pg_db_name}-additional"
+      charset   = "UTF8"
+      collation = "en_US.UTF8"
+    },
+  ]
+
+  user_name     = "tftest"
+  user_password = "foobar"
+
+  additional_users = [
+    {
+      name            = "tftest2"
+      password        = "abcdefg"
+      host            = "%"
+      random_password = false
+    },
+    {
+      name            = "tftest3"
+      password        = "abcdefg"
+      host            = "%"
+      random_password = false
+    },
+  ]
+}

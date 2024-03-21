@@ -7,8 +7,8 @@ database_version = "POSTGRES_14"
 tier = "db-custom-1-3840"
 pg_db_name = "master-db"
 
-db_user     = "your-db-user"
-db_password = "your-db-password"
+db_user     = "test-user1"
+db_password = "abcde"
 
 database_flags = {
   "cloudsql_enable_private_ip" = "on",
@@ -23,7 +23,7 @@ authorized_networks = ["10.0.0.0/24"]
 require_ssl = true
 backup_enabled = true
 backup_retention_period = "1d"
-encryption_key_name = "projects/PROJECT_ID/locations/global/keyRings/KEYRING_NAME/cryptoKeys/KEY_NAME"
-private_network = "default"
+encryption_key_name = "test-enc-key"
+private_network = "Groupnet"
 private_ip      = "10.0.0.10"
 deletion_protection = true
